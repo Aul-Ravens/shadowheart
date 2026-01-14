@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>尹子锋 - Zifeng Yin | Personal Workspace </title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+        
+        body { 
+            font-family: 'Inter', 'Noto Sans SC', sans-serif; 
+            background-color: #f0f2f5; 
+            color: #1e293b;
+            overflow: hidden; 
+            font-size: 1.125rem; /* 18px */
+        }
+
+        /* 电影遮罩 */
+        .cinema-strip {
+            position: fixed; left: 0; width: 100%; height: 5%; 
+            z-index: 50; overflow: hidden;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+            background: #000; 
+        }
+        .cinema-strip.top { top: 0; border-bottom: 1px solid rgba(255,255,255,0.2); }
+        .cinema-strip.bottom { bottom: 0; border-top: 1px solid rgba(255,255,255,0.2); }
+
+        .cinema-bg {
+            position: absolute; top: -50%; left: -10%; width: 120%; height: 200%; 
+            background-image: url('picture/4.jpg'); 
+            background-size: cover; background-position: center;
+            filter: blur(3px) brightness(0.6); 
+            transition: transform 0.1s ease-out, opacity 0.6s ease-in-out; 
+        }
+
+        /* 侧边栏 */
+        .nav-item { 
+            position: relative; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 8px; margin-bottom: 4px;
+        }
+        .nav-item.active { 
+            background: rgba(37, 99, 235, 0.08); color: #2563eb; font-weight: 700; 
+        }
+        .nav-item:hover:not(.active) {
+            background-color: #f8fafc; color: #334155; transform: translateX(4px);
+        }
+        
+        .submenu {
+            max-height: 0; overflow: hidden;
+            transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+            opacity: 0;
+        }
+        .submenu.open { max-height: 500px; opacity: 1; }
+        .arrow-icon { transition: transform 0.3s ease; }
+        .arrow-icon.rotate { transform: rotate(90deg); }
+
+        /* 内容区动画 */
+        .content-section { display: none; }
+        .content-section.active { 
+            display: block; 
+            animation: fadeInScale 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes fadeInScale {
+            from { opacity: 0; transform: scale(0.98) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        /* Bento Card */
+        .bento-card {
+            background: white; border-radius: 24px;
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            transition: all 0.4s ease; overflow: hidden; position: relative;
+        }
+        .bento-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.08);
+            border-color: rgba(37, 99, 235, 0.3);
+        }
+
+        /* 子页面切换 */
+        .sub-slide {
+            display: none; animation: slideInRight 0.5s ease-out forwards;
+        }
+        .sub-slide.active { display: block; }
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* 重庆交大内部轮播 */
+        .school-bg-slider {
+            position: absolute; inset: 0; z-index: 0; transition: opacity 0.8s ease-in-out;
+        }
+        .school-content-slide {
+            position: absolute; bottom: 0; left: 0; width: 100%; padding: 3rem; 
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            opacity: 0; transform: translateY(20px); pointer-events: none; 
+        }
+        .school-content-slide.active { opacity: 1; transform: translateY(0); pointer-events: auto; }
+        .school-overlay { background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 60%, rgba(0,0,0,0.2) 100%); }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .glass-tag {
+            background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="cinema-strip top">
+        <div id="cinema-bg-top" class="cinema-bg parallax-layer" data-speed="3"></div>
+    </div>
+    <div class="cinema-strip bottom">
+        <div id="cinema-bg-bottom" class="cinema-bg parallax-layer" data-speed="3"></div>
+    </div>
+
+    <div class="flex h-screen w-full pt-[5vh] pb-[5vh] box-border relative z-10">
+
+        <aside class="w-80 bg-white/90 backdrop-blur-md h-full border-r border-gray-200 flex flex-col justify-between flex-shrink-0 z-20">
+            <div>
+                <div class="px-4 pt-12 pb-6 flex flex-col">
+                    <h1 class="text-4xl text-black-500 font-bold tracking-[0.3em] mt-2 uppercase text-center w-full">
+                        YIN.<span class="text-purple-600">ZF</span>
+                        </h1>
+                    <p class="text-[10px] text-slate-400 font-bold tracking-[0.5em] mt-2 uppercase text-center w-full">
+                        Personal Profile
+                        </p>
+                    <p class="text-[10px] text-black-400 font-bold tracking-[0.5em] mt-1 uppercase text-center w-full">
+                        ———————————————
+                        </p>
+                </div>
+
+                <nav class="flex flex-col gap-2 py-4 px-6" id="mainNav">
+                    <a onclick="showSection('home')" class="nav-item active px-6 py-4 flex items-center gap-4 text-slate-500 cursor-pointer">
+                        <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 text-xl">
+                            <i class="fa-regular fa-id-card"></i>
+                        </div>
+                        <span class="text-lg font-medium">基 础 信 息</span>
+                    </a>
+
+                    <a onclick="showSection('education', 1)" class="nav-item px-6 py-4 flex items-center gap-4 text-slate-500 cursor-pointer">
+                        <div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center text-green-600 text-xl">
+                            <i class="fa-solid fa-graduation-cap"></i>
+                        </div>
+                        <span class="text-lg font-medium">教 育 背 景</span>
+                    </a>
+
+                    <div>
+                        <div class="nav-item px-6 py-4 flex items-center justify-between text-slate-500 cursor-pointer" onclick="toggleSubmenu('intern-menu', this); showSection('internship', 1);">
+                            <div class="flex items-center gap-4">
+                                <div class="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center text-purple-600 text-xl">
+                                    <i class="fa-solid fa-briefcase"></i>
+                                </div>
+                                <span class="text-lg font-bold text-slate-700">实 习 经 历</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-right arrow-icon text-sm"></i>
+                        </div>
+                        <div id="intern-menu" class="submenu pl-7 pr-4 flex flex-col gap-3 border-l-2 border-slate-100 ml-11 my-1">
+                            <a onclick="showSection('internship', 1)" class="text-sm text-slate-500 hover:text-purple-600 transition-colors flex items-center gap-2 cursor-pointer py-1">
+                                <i class="fa-solid fa-circle text-[6px]"></i> 深圳市低空经济产业协会 (秘书处助理岗)
+                            </a>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="nav-item px-6 py-4 flex items-center justify-between text-slate-500 cursor-pointer" onclick="toggleSubmenu('proj-menu', this); showSection('projects', 1);">
+                            <div class="flex items-center gap-4">
+                                <div class="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 text-xl">
+                                    <i class="fa-solid fa-layer-group"></i>
+                                </div>
+                                <span class="text-lg font-bold text-slate-700">项 目 & 实 践</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-right arrow-icon text-sm"></i>
+                        </div>
+                        <div id="proj-menu" class="submenu pl-7 pr-4 flex flex-col gap-3 border-l-2 border-slate-100 ml-11 my-1">
+                            <a onclick="showSection('projects', 1)" class="text-sm text-slate-500 hover:text-indigo-600 transition-colors flex items-center gap-2 cursor-pointer py-1">
+                                <i class="fa-solid fa-circle text-[6px]"></i> 基于机器学习的eVTOL噪声适航符合性测试与仿真研究
+                            </a>
+                            <a onclick="showSection('projects', 2)" class="text-sm text-slate-500 hover:text-indigo-600 transition-colors flex items-center gap-2 cursor-pointer py-1">
+                                <i class="fa-solid fa-circle text-[6px]"></i> 希龙科技“飞天摩托”eVTOL 适航测试
+                            </a>
+                            <a onclick="showSection('projects', 3)" class="text-sm text-slate-500 hover:text-indigo-600 transition-colors flex items-center gap-2 cursor-pointer py-1">
+                                <i class="fa-solid fa-circle text-[6px]"></i> 多媒体技术可视化-视频剪辑及后期
+                            </a>
+                        </div>
+                    </div>
+
+                    <a onclick="showSection('skills')" class="nav-item px-6 py-4 flex items-center gap-4 text-slate-500 cursor-pointer mt-2">
+                        <div class="w-10 h-10 rounded-lg bg-pink-50 flex items-center justify-center text-pink-600 text-xl">
+                            <i class="fa-solid fa-star"></i>
+                        </div>
+                        <span class="text-lg font-medium">其 他 经 历</span>
+                    </a>
+                </nav>
+            </div>
+
+            <div class="p-8 border-t border-gray-100">
+                <div class="text-xs text-slate-400 font-light leading-relaxed">
+                    &copy; 2026 ZIFENG YIN<br>DESIGNED FOR FUTURE
+                </div>
+            </div>
+        </aside>
+
+        <main class="flex-1 h-full overflow-y-auto no-scrollbar relative bg-[#f8fafc]" id="contentArea">
+            <div class="fixed top-20 right-20 w-96 h-96 bg-blue-200/30 rounded-full blur-[100px] pointer-events-none"></div>
+
+            <section id="home" class="content-section active max-w-7xl mx-auto p-8 md:p-16">
+                <div class="space-y-8 mb-10">
+                    <div class="bento-card p-10 bg-white w-full">
+                        <div class="flex flex-col md:flex-row gap-10 items-start">
+                            <div class="relative w-40 h-48 shrink-0 group">
+                                <div class="absolute inset-0 bg-blue-500 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
+                                <img src="me.jpg" alt="Zifeng Yin" class="relative w-full h-full object-cover rounded-2xl border-4 border-white shadow-lg">
+                                <div class="absolute -bottom-2 -right-2 w-6 h-6 bg-green-500 border-4 border-white rounded-full flex items-center justify-center">
+                                    <div class="w-2 h-2 bg-white rounded-full"></div>
+                                </div>
+                            </div>
+                            <div class="flex-1 w-full">
+                                <div class="mb-8">
+                                    <h2 class="text-4xl font-bold text-slate-800">尹子锋 <span class="text-2xl font-normal text-slate-400 ml-2">Zifeng Yin</span></h2>
+                                    <span class="inline-block mt-3 px-4 py-1.5 bg-slate-100 text-slate-600 text-sm font-bold rounded-full tracking-wide">个人基础信息 / Personal Information</span>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-base text-slate-600">
+                                    <div class="flex flex-col bg-slate-50 p-4 rounded-xl border border-slate-100 hover:border-blue-200 transition"><span class="text-sm text-slate-400 mb-1 flex items-center gap-2"><i class="fa-solid fa-phone text-blue-500"></i> 电话 / Phone</span><span class="font-semibold text-slate-700">181-2992-0024</span></div>
+                                    <div class="flex flex-col bg-slate-50 p-4 rounded-xl border border-slate-100 hover:border-blue-200 transition"><span class="text-sm text-slate-400 mb-1 flex items-center gap-2"><i class="fa-solid fa-envelope text-blue-500"></i> 邮箱 / Email</span><span class="font-semibold text-slate-700 text-sm truncate" title="y1627608541@163.com">y1627608541@163.com</span></div>
+                                    <div class="flex flex-col bg-slate-50 p-4 rounded-xl border border-slate-100 hover:border-blue-200 transition"><span class="text-sm text-slate-400 mb-1 flex items-center gap-2"><i class="fa-solid fa-location-dot text-blue-500"></i> 现居 / Current City</span><span class="font-semibold text-slate-700">广东 · 深圳</span></div>
+                                    <div class="flex flex-col bg-slate-50 p-4 rounded-xl border border-slate-100 hover:border-blue-200 transition"><span class="text-sm text-slate-400 mb-1 flex items-center gap-2"><i class="fa-solid fa-house-user text-blue-500"></i> 籍贯 / Hometown</span><span class="font-semibold text-slate-700">重庆 · 万州</span></div>
+                                    <div class="flex flex-col bg-slate-50 p-4 rounded-xl border border-slate-100 hover:border-blue-200 transition"><span class="text-sm text-slate-400 mb-1 flex items-center gap-2"><i class="fa-solid fa-calendar text-blue-500"></i> 生日 / Date of Birth</span><span class="font-semibold text-slate-700">2004年1月 (22岁)</span></div>
+                                    <div class="flex flex-col bg-slate-50 p-4 rounded-xl border border-slate-100 hover:border-blue-200 transition"><span class="text-sm text-slate-400 mb-1 flex items-center gap-2"><i class="fa-solid fa-graduation-cap text-blue-500"></i> 学历 / Education</span><span class="font-semibold text-slate-700">硕士研究生 (在读)</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bento-card p-10 w-full bg-gradient-to-br from-white to-blue-50 border-blue-100 shadow-md">
+                        <div class="text-center mb-10">
+                            <h3 class="text-2xl font-bold text-slate-800 flex items-center justify-center gap-3"><i class="fa-solid fa-qrcode text-blue-600"></i> 扫码快速联系</h3>
+                            <p class="text-base text-slate-400 mt-2">Welcome to scan for contact</p>
+                        </div>
+                        <div class="flex justify-center gap-20 md:gap-32">
+                            <div class="flex flex-col items-center gap-4 group"><div class="w-64 h-64 bg-white p-3 rounded-2xl shadow-sm border border-slate-100 group-hover:scale-105 transition-transform duration-300"><img src="code/wechat.jpg" class="w-full h-full object-contain rounded-xl"></div><span class="text-lg text-slate-500 font-bold bg-green-50 text-green-600 px-6 py-2 rounded-full">WeChat</span></div>
+                            <div class="flex flex-col items-center gap-4 group"><div class="w-64 h-64 bg-white p-3 rounded-2xl shadow-sm border border-slate-100 group-hover:scale-105 transition-transform duration-300"><img src="code/QQ.png" class="w-full h-full object-contain rounded-xl"></div><span class="text-lg text-slate-500 font-bold bg-blue-50 text-blue-600 px-6 py-2 rounded-full">QQ</span></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="education" class="content-section max-w-7xl mx-auto p-8 md:p-16 relative">
+                <div class="mb-10 flex justify-between items-end">
+                    <div>
+                        <span class="text-green-600 font-bold text-lg tracking-wider uppercase mb-2 block">Education Background</span>
+                        <h2 class="text-4xl font-bold text-slate-800">教育背景</h2>
+                    </div>
+                    <div class="flex gap-4">
+                        <button onclick="changeEduSlide(-1)" class="w-14 h-14 rounded-full border border-slate-300 flex items-center justify-center hover:bg-slate-100 transition text-slate-600 text-xl"><i class="fa-solid fa-arrow-left"></i></button>
+                        <button onclick="changeEduSlide(1)" class="w-14 h-14 rounded-full bg-green-600 text-white flex items-center justify-center hover:bg-green-700 transition shadow-lg text-xl"><i class="fa-solid fa-arrow-right"></i></button>
+                    </div>
+                </div>
+
+                <div id="edu-slide-1" class="sub-slide active">
+                    <div class="bento-card p-12 h-[700px] border-l-8 border-l-blue-600 flex flex-col justify-center">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+                            <div>
+                                <h3 class="text-4xl font-bold text-slate-800">深圳大学 <span class="text-2xl font-normal text-slate-500 ml-2">Shenzhen University</span></h3>
+                                <p class="text-blue-600 font-semibold mt-3 text-xl">交通运输 (硕士) | 应用技术学院</p>
+                            </div>
+                            <span class="mt-4 md:mt-0 px-6 py-3 bg-slate-100 text-slate-600 rounded-full text-lg font-bold">2025.09 - 至今</span>
+                        </div>
+                        <ul class="space-y-6 text-slate-600 text-xl">
+                            <li class="flex items-center gap-4"><i class="fa-solid fa-trophy text-yellow-500 text-2xl"></i> 以一志愿综合成绩<b>第一名</b>考取</li>
+                            <li class="flex items-center gap-4"><i class="fa-solid fa-medal text-yellow-500 text-2xl"></i> 获2025-2026学年研究生学业<b>一等奖学金</b></li>
+                            <li class="flex items-center gap-4"><i class="fa-solid fa-microscope text-blue-500 text-2xl"></i> 研究方向：轻型eVTOL（无人机）关键性技术适航测试</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div id="edu-slide-2" class="sub-slide">
+                    <div class="bento-card w-full h-[700px] relative flex items-end overflow-hidden group shadow-xl">
+                        <div id="cqjtu-bg-1" class="school-bg-slider opacity-100 bg-cover bg-center" style="background-image: url('picture/cqjtu1.jpg');"></div>
+                        <div id="cqjtu-bg-2" class="school-bg-slider opacity-0 bg-cover bg-center" style="background-image: url('picture/cqjtu2.jpg');"></div>
+                        <div id="cqjtu-bg-3" class="school-bg-slider opacity-0 bg-cover bg-center" style="background-image: url('picture/cqjtu3.jpg');"></div>
+                        <div id="cqjtu-bg-4" class="school-bg-slider opacity-0 bg-cover bg-center" style="background-image: url('picture/cqjtu4.jpg');"></div>
+
+                        <div class="absolute inset-0 school-overlay z-10"></div>
+
+                        <div class="absolute top-8 left-8 z-30 bg-white/95 rounded-xl p-4 shadow-lg backdrop-blur-sm">
+                            <img src="undergraduate/brand.png" alt="CQJTU" class="w-48 h-auto object-contain">
+                        </div>
+
+                        <button onclick="nextSchoolSlide()" class="absolute top-12 right-12 z-30 bg-white/20 hover:bg-white/40 backdrop-blur border border-white/50 text-white rounded-full p-5 transition shadow-lg group">
+                            <i class="fa-solid fa-chevron-right text-2xl group-active:translate-x-1 transition"></i>
+                        </button>
+
+                        <div id="school-content-1" class="school-content-slide active z-20 text-white">
+                            <div class="mb-6"><span class="glass-tag px-4 py-1.5 rounded text-sm font-bold uppercase tracking-wider">Undergraduate Info</span></div>
+                            <h3 class="text-6xl font-bold mb-4"><span class="text-red-500 font-semibold">重庆交通大学</span></h3>
+                            <h3 class="text-4xl font-bold mb-4">专业：茅以升道路</h3>
+                            <p class="text-2xl opacity-90 mb-10 font-light">本科 / <span class="text-red-500 font-semibold">茅以升工程创新</span>实验班 (2021年9月-2025年6月)</p>
+                            <div class="max-w-5xl text-lg opacity-100 bg-black/30 p-8 rounded-3xl backdrop-blur-sm">
+                                <strong class="block text-blue-300 mb-4 text-xl">核心课程与成绩</strong>
+                                <h2 class="leading-loose text-xl font-light text-justify">
+                                    画法几何及工程制图(95)、大学物理(91)、理论力学(83)、电工与电子技术(82)、交通工程学(94)、计算机辅助设计及应用(87)等，<span class="font-semibold text-white">奠定工程测试与技术研发基础</span>。
+                                </h2>
+                            </div>
+                        </div>
+
+                        <div id="school-content-2" class="school-content-slide z-20 text-white">
+                            <div class="mb-6"><span class="glass-tag px-4 py-1.5 rounded text-sm font-bold uppercase tracking-wider">About University</span></div>
+                            <h3 class="text-4xl font-bold mb-6">历史沿革与定位</h3>
+                            <div class="max-w-4xl text-xl leading-relaxed opacity-90 space-y-6">
+                                <p>重庆交通大学（CQJTU），是一所交通特色、以工为主的多科性大学。入选国家<span class="text-red-500 font-semibold">“中西部高校基础能力建设工程”、“卓越工程师教育培养计划”</span>，是重庆市一流学科建设高校。</p>
+                                <p>学校前身为1951年创建的西南交通专科学校，1960年组建重庆交通学院。2006年更名为重庆交通大学，并增列为博士授予单位。</p>
+                            </div>
+                        </div>
+
+                        <div id="school-content-3" class="school-content-slide z-20 text-white">
+                            <div class="mb-6"><span class="glass-tag px-4 py-1.5 rounded text-sm font-bold uppercase tracking-wider">Scale & Faculty</span></div>
+                            <h3 class="text-4xl font-bold mb-10">办学规模 (2025)</h3>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+                                <div class="bg-white/10 p-6 rounded-2xl backdrop-blur-sm"><div class="text-4xl font-black text-blue-300">2900+</div><div class="text-base opacity-80 mt-2">占地亩数</div></div>
+                                <div class="bg-white/10 p-6 rounded-2xl backdrop-blur-sm"><div class="text-4xl font-black text-blue-300">20</div><div class="text-base opacity-80 mt-2">学院(部)</div></div>
+                                <div class="bg-white/10 p-6 rounded-2xl backdrop-blur-sm"><div class="text-4xl font-black text-blue-300">3.1W+</div><div class="text-base opacity-80 mt-2">学生总数</div></div>
+                                <div class="bg-white/10 p-6 rounded-2xl backdrop-blur-sm"><div class="text-4xl font-black text-blue-300">5</div><div class="text-base opacity-80 mt-2">一级学科博士点</div></div>
+                            </div>
+                        </div>
+
+                        <div id="school-content-4" class="school-content-slide z-20 text-white">
+                            <div class="mb-6"><span class="glass-tag px-4 py-1.5 rounded text-sm font-bold uppercase tracking-wider">Honors</span></div>
+                            <h3 class="text-4xl font-bold mb-8">主要奖项与荣誉</h3>
+                            <div class="space-y-5 text-xl">
+                                <div class="flex items-center gap-4"><i class="fa-solid fa-medal text-yellow-400 text-2xl"></i><span>全国毕业生就业典型经验高校 (2010)</span></div>
+                                <div class="flex items-center gap-4"><i class="fa-solid fa-medal text-yellow-400 text-2xl"></i><span>全国创新创业典型经验高校 (2016)</span></div>
+                                <div class="flex items-center gap-4"><i class="fa-solid fa-medal text-yellow-400 text-2xl"></i><span>全国文明校园先进学校 (2019)</span></div>
+                                <div class="flex items-center gap-4"><i class="fa-solid fa-flask text-blue-400 text-2xl"></i><span>国家科技进步奖、国家发明奖17项 (截至2024)</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="internship" class="content-section max-w-7xl mx-auto p-8 md:p-16 h-full relative">
+                <div class="mb-10 flex justify-between items-end">
+                    <div>
+                        <span class="text-purple-600 font-bold text-lg tracking-wider uppercase mb-2 block">Experience</span>
+                        <h2 class="text-4xl font-bold text-slate-800">职业实践历程</h2>
+                    </div>
+                </div>
+
+                <div id="intern-slide-1" class="sub-slide active">
+                    <div class="bento-card p-10 h-full">
+                        <div class="flex gap-8 mb-8 border-b border-slate-100 pb-8">
+                            <div class="hidden md:flex flex-col items-center">
+                                <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 text-2xl"><i class="fa-solid fa-building-columns"></i></div>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex justify-between items-start mb-4">
+                                    <h3 class="text-3xl font-bold text-slate-800">深圳市低空经济产业协会</h3>
+                                    <span class="bg-blue-50 text-blue-600 text-sm font-bold px-4 py-2 rounded-full">2025.10 - 至今</span>
+                                </div>
+                                <p class="text-slate-500 text-xl font-medium mb-6">秘书处助理 (实习) | 新媒体运营方向</p>
+                                
+                                <div class="bg-slate-50 p-6 rounded-2xl text-lg text-slate-600 leading-relaxed mb-8 space-y-4">
+                                    <p><strong>• 行业洞察：</strong> 聚焦产业链热点，独立完成15+篇行业推文及5条宣发视频，覆盖1.2万+精准受众。</p>
+                                    <p><strong>• 资源协调：</strong> 对接10+家头部企业，深化了对飞控系统优化及适航认证核心诉求的理解。</p>
+                                    <div class="p-4 bg-purple-50 rounded-xl border border-purple-100 mt-4">
+                                        <strong class="text-purple-700 block mb-2"><i class="fa-solid fa-star"></i> 重点成就：高交会统筹 (CIDER 2024)</strong>
+                                        <p class="text-base text-slate-600">作为第十七届中国国际高新技术成果交易会(深圳)核心统筹，负责展区全案策划，协调13家参展单位落地衔接，成功处置现场电力与人流应急事件，保障展会零失误运行。</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-900 rounded-3xl p-8">
+                            <h4 class="text-white text-lg font-bold mb-6 flex items-center gap-3"><i class="fa-brands fa-tiktok text-pink-500"></i> 运营成果展示 (竖屏)</h4>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                                <div class="relative aspect-[9/16] bg-black rounded-2xl overflow-hidden group shadow-lg border border-slate-700 hover:border-pink-500 transition"><video src="video/meet1.mp4" controls class="w-full h-full object-cover"></video><div class="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-black/90 to-transparent pointer-events-none"><span class="text-sm text-white font-bold block">协会活动混剪</span></div></div>
+                                <div class="relative aspect-[9/16] bg-black rounded-2xl overflow-hidden group shadow-lg border border-slate-700 hover:border-pink-500 transition"><video src="video/meet2.mp4" controls class="w-full h-full object-cover"></video><div class="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-black/90 to-transparent pointer-events-none"><span class="text-sm text-white font-bold block">高交会现场讲解</span></div></div>
+                                <div class="relative aspect-[9/16] bg-black rounded-2xl overflow-hidden group shadow-lg border border-slate-700 hover:border-pink-500 transition"><video src="video/gao.mp4" controls class="w-full h-full object-cover"></video><div class="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-black/90 to-transparent pointer-events-none"><span class="text-sm text-white font-bold block">企业探访: 高巨创新</span></div></div>
+                                <div class="relative aspect-[9/16] bg-black rounded-2xl overflow-hidden group shadow-lg border border-slate-700 hover:border-pink-500 transition"><video src="video/ha.mp4" controls class="w-full h-full object-cover"></video><div class="absolute bottom-0 left-0 w-full p-4 bg-gradient-to-t from-black/90 to-transparent pointer-events-none"><span class="text-sm text-white font-bold block">企业探访: 哈深智新</span></div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="projects" class="content-section max-w-7xl mx-auto p-8 md:p-16 relative">
+                <div class="mb-10 flex justify-between items-end">
+                    <div>
+                        <span class="text-indigo-600 font-bold text-lg tracking-wider uppercase mb-2 block">Projects & Practice</span>
+                        <h2 class="text-4xl font-bold text-slate-800">核心项目与实践经历</h2>
+                    </div>
+                    <div class="flex gap-4">
+                        <button onclick="changeProjectSlide(-1)" class="w-14 h-14 rounded-full border border-slate-300 flex items-center justify-center hover:bg-slate-100 transition text-slate-600 text-xl"><i class="fa-solid fa-arrow-left"></i></button>
+                        <button onclick="changeProjectSlide(1)" class="w-14 h-14 rounded-full bg-indigo-600 text-white flex items-center justify-center hover:bg-indigo-700 transition shadow-lg text-xl"><i class="fa-solid fa-arrow-right"></i></button>
+                    </div>
+                </div>
+
+                <div id="proj-slide-1" class="sub-slide active">
+                    <div class="bento-card p-12 h-full hover:bg-slate-50 transition border-l-8 border-indigo-600">
+                        <div class="w-20 h-20 bg-indigo-100 rounded-3xl flex items-center justify-center text-indigo-600 text-4xl mb-8"><i class="fa-solid fa-robot"></i></div>
+                        <h3 class="text-4xl font-bold text-slate-800 mb-6">噪声符合性测试与仿真研究</h3>
+                        <p class="text-xl text-slate-500 mb-10 font-medium">负责人 | 2025.09 - 2025.12</p>
+                        <div class="text-2xl text-slate-600 leading-loose mb-12 space-y-8">
+                            <p>针对传统测试成本高痛点，提出<strong>“ROS仿真 + 机器学习”</strong>技术路线。</p>
+                            <p>基于Ubuntu构建“Gazebo + PX4 + ROS”一体化平台，开发Python节点实现数据同步采集，利用<strong>随机森林回归</strong>模型实现高精度预测。</p>
+                        </div>
+                        <div class="flex flex-wrap gap-4 mt-auto">
+                            <span class="px-6 py-3 bg-white border border-slate-200 rounded-xl text-lg text-slate-600 font-bold shadow-sm">ROS/Gazebo</span>
+                            <span class="px-6 py-3 bg-white border border-slate-200 rounded-xl text-lg text-slate-600 font-bold shadow-sm">Python</span>
+                            <span class="px-6 py-3 bg-white border border-slate-200 rounded-xl text-lg text-slate-600 font-bold shadow-sm">Machine Learning</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="proj-slide-2" class="sub-slide">
+                    <div class="bento-card p-12 h-full hover:bg-slate-50 transition border-l-8 border-green-600">
+                        <div class="w-20 h-20 bg-green-100 rounded-3xl flex items-center justify-center text-green-600 text-4xl mb-8"><i class="fa-solid fa-plane-departure"></i></div>
+                        <h3 class="text-4xl font-bold text-slate-800 mb-6">希龙科技“飞天摩托”实机测试</h3>
+                        <p class="text-xl text-slate-500 mb-10 font-medium">技术研发 | 2025.09 - 至今</p>
+                        <div class="text-2xl text-slate-600 leading-loose mb-12 space-y-8">
+                            <p>深度参与eVTOL起飞、巡航、降落全工况测试。</p>
+                            <p>负责梳理测试流程，规划多指标（噪声、碳排放）检测点位，进行<strong>数据实时采集、预处理及分析</strong>，辅助撰写专业技术报告。</p>
+                        </div>
+                        <div class="flex flex-wrap gap-4 mt-auto">
+                            <span class="px-6 py-3 bg-white border border-slate-200 rounded-xl text-lg text-slate-600 font-bold shadow-sm">数据分析</span>
+                            <span class="px-6 py-3 bg-white border border-slate-200 rounded-xl text-lg text-slate-600 font-bold shadow-sm">硬件测试</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="proj-slide-3" class="sub-slide">
+                    <div class="bento-card p-10 bg-slate-900 text-white relative overflow-hidden">
+                        <div class="absolute top-0 right-0 w-96 h-96 bg-pink-500 rounded-full blur-[150px] opacity-20 pointer-events-none"></div>
+                        <div class="flex items-center gap-6 mb-10">
+                            <div class="w-16 h-16 bg-pink-500 rounded-2xl flex items-center justify-center text-white text-3xl shadow-lg shadow-pink-500/30"><i class="fa-solid fa-clapperboard"></i></div>
+                            <div>
+                                <h3 class="text-3xl font-bold">多媒体技术可视化 & 视频创作</h3>
+                                <p class="text-slate-400 text-lg">Technical Visualization & Video Production</p>
+                            </div>
+                        </div>
+                        <div class="flex flex-col gap-12 max-w-5xl mx-auto">
+                            <div class="group">
+                                <div class="w-full aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl border border-slate-700 relative"><video src="video/house.mp4" controls class="w-full h-full object-cover"></video></div>
+                                <div class="mt-4 flex items-center justify-between"><h4 class="text-2xl font-bold text-white">重庆市第七届艺术展演</h4><span class="px-5 py-2 bg-pink-600/20 text-pink-400 border border-pink-600/30 rounded-full text-base font-bold">省级二等奖</span></div>
+                                <p class="text-slate-400 mt-2 text-lg">负责全流程策划、拍摄与后期剪辑</p>
+                            </div>
+                            <div class="group">
+                                <div class="w-full aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl border border-slate-700 relative"><video src="video/bridge.mp4" controls class="w-full h-full object-cover"></video></div>
+                                <div class="mt-6 flex items-center justify-between"><h4 class="text-2xl font-bold text-white">重庆交通大学双语视频大赛</h4><span class="px-5 py-2 bg-blue-600/20 text-blue-400 border border-blue-600/30 rounded-full text-base font-bold">校级一等奖</span></div>
+                                <p class="text-slate-400 mt-2 text-lg">展示工程人物生平与技术成就</p>
+                            </div>
+                            <div class="group">
+                                <div class="w-full aspect-video bg-black rounded-3xl overflow-hidden shadow-2xl border border-slate-700 relative"><video src="video/spring.mp4" controls class="w-full h-full object-cover"></video></div>
+                                <div class="mt-6 flex items-center justify-between"><h4 class="text-2xl font-bold text-white">创意漫剪 (Anime Edit)</h4><span class="px-5 py-2 bg-green-600/20 text-green-400 border border-green-600/30 rounded-full text-base font-bold">Creative & FX</span></div>
+                                <p class="text-slate-400 mt-2 text-lg">练习用</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+             <section id="skills" class="content-section max-w-7xl mx-auto p-8 md:p-12">
+                <div class="mb-10">
+                    <span class="text-blue-600 font-bold text-lg tracking-wider uppercase mb-2 block">Capabilities</span>
+                    <h2 class="text-4xl font-bold text-slate-800">专业技能与证书</h2>
+                </div>
+                <div class="grid md:grid-cols-3 gap-8">
+                    <div class="bento-card p-8 border-t-4 border-t-blue-500">
+                        <h3 class="font-bold text-xl mb-6">💻 编程与算法</h3>
+                        <div class="flex flex-wrap gap-3"><span class="skill-tag px-4 py-2 bg-slate-100 rounded text-base text-slate-700 font-medium">Python (精通)</span><span class="skill-tag px-4 py-2 bg-slate-100 rounded text-base text-slate-700 font-medium">C++</span><span class="skill-tag px-4 py-2 bg-slate-100 rounded text-base text-slate-700 font-medium">Matlab</span><span class="skill-tag px-4 py-2 bg-slate-100 rounded text-base text-slate-700 font-medium">Scikit-learn</span><span class="skill-tag px-4 py-2 bg-slate-100 rounded text-base text-slate-700 font-medium">Pandas/NumPy</span></div>
+                    </div>
+                    <div class="bento-card p-8 border-t-4 border-t-purple-500">
+                        <h3 class="font-bold text-xl mb-6">🛠️ 仿真与工程</h3>
+                        <div class="flex flex-wrap gap-3"><span class="skill-tag px-4 py-2 bg-slate-100 rounded text-base text-slate-700 font-medium">ROS / Gazebo</span><span class="skill-tag px-4 py-2 bg-slate-100 rounded text-base text-slate-700 font-medium">AirSim</span><span class="skill-tag px-4 py-2 bg-slate-100 rounded text-base text-slate-700 font-medium">SolidWorks</span><span class="skill-tag px-4 py-2 bg-slate-100 rounded text-base text-slate-700 font-medium">AutoCAD</span></div>
+                    </div>
+                    <div class="bento-card p-8 border-t-4 border-t-pink-500">
+                        <h3 class="font-bold text-xl mb-6">🎨 创意与工具</h3>
+                        <div class="flex flex-wrap gap-3"><span class="skill-tag px-4 py-2 bg-slate-100 rounded text-base text-slate-700 font-medium">Adobe Premiere</span><span class="skill-tag px-4 py-2 bg-slate-100 rounded text-base text-slate-700 font-medium">After Effects</span><span class="skill-tag px-4 py-2 bg-slate-100 rounded text-base text-slate-700 font-medium">Photoshop</span><span class="skill-tag px-4 py-2 bg-slate-100 rounded text-base text-slate-700 font-medium">Blender</span></div>
+                    </div>
+                </div>
+            </section>
+
+            <div class="h-24"></div>
+
+        </main>
+    </div>
+
+    <script>
+        const parallaxLayers = document.querySelectorAll('.parallax-layer');
+        document.addEventListener('mousemove', (e) => {
+            const x = (window.innerWidth - e.pageX * 2) / 100; 
+            const y = (window.innerHeight - e.pageY * 2) / 100;
+            parallaxLayers.forEach(layer => { layer.style.transform = `translateX(${x}px) translateY(${y}px)`; });
+        });
+
+        function toggleSubmenu(menuId, btn) {
+            const menu = document.getElementById(menuId);
+            const arrow = btn.querySelector('.arrow-icon');
+            document.querySelectorAll('.submenu').forEach(m => {
+                if(m.id !== menuId) { m.classList.remove('open'); m.previousElementSibling.querySelector('.arrow-icon').classList.remove('rotate'); }
+            });
+            menu.classList.toggle('open'); arrow.classList.toggle('rotate');
+        }
+
+        /* 教育翻页逻辑 */
+        let currentEduSlide = 1;
+        function changeEduSlide(direction) {
+            document.getElementById(`edu-slide-${currentEduSlide}`).classList.remove('active');
+            currentEduSlide += direction;
+            if (currentEduSlide > 2) currentEduSlide = 1;
+            if (currentEduSlide < 1) currentEduSlide = 2;
+            document.getElementById(`edu-slide-${currentEduSlide}`).classList.add('active');
+        }
+
+        /* 项目翻页逻辑 */
+        let currentProjSlide = 1;
+        const totalProjSlides = 3; 
+        function changeProjectSlide(direction) {
+            document.getElementById(`proj-slide-${currentProjSlide}`).classList.remove('active');
+            currentProjSlide += direction;
+            if (currentProjSlide > totalProjSlides) currentProjSlide = 1;
+            if (currentProjSlide < 1) currentProjSlide = totalProjSlides;
+            document.getElementById(`proj-slide-${currentProjSlide}`).classList.add('active');
+        }
+
+        /* 重庆交大图片轮播 */
+        let currentSchoolSlide = 1;
+        const totalSchoolSlides = 4;
+        function nextSchoolSlide() {
+            const currentBg = document.getElementById(`cqjtu-bg-${currentSchoolSlide}`);
+            currentBg.classList.remove('opacity-100'); currentBg.classList.add('opacity-0');
+            const currentContent = document.getElementById(`school-content-${currentSchoolSlide}`);
+            currentContent.classList.remove('active');
+
+            currentSchoolSlide = (currentSchoolSlide % totalSchoolSlides) + 1;
+            
+            const nextBg = document.getElementById(`cqjtu-bg-${currentSchoolSlide}`);
+            nextBg.classList.remove('opacity-0'); nextBg.classList.add('opacity-100');
+            const nextContent = document.getElementById(`school-content-${currentSchoolSlide}`);
+            nextContent.classList.add('active');
+        }
+
+        const sectionImages = {
+            'home': 'picture/4.jpg',
+            'education': 'picture/5.png',
+            'internship': 'picture/5.png',
+            'projects': 'picture/6.jpg',
+            'skills': 'picture/7.jpg'
+        };
+
+        function showSection(sectionId, subSlideIndex = null) {
+            document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+            const target = document.getElementById(sectionId);
+            if(target) target.classList.add('active');
+            
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            
+            document.getElementById('contentArea').scrollTo({ top: 0, behavior: 'smooth' });
+
+            const newImage = sectionImages[sectionId];
+            if(newImage) {
+                const bgTop = document.getElementById('cinema-bg-top');
+                const bgBottom = document.getElementById('cinema-bg-bottom');
+                bgTop.style.opacity = '0'; bgBottom.style.opacity = '0';
+                setTimeout(() => {
+                    bgTop.style.backgroundImage = `url('${newImage}')`;
+                    bgBottom.style.backgroundImage = `url('${newImage}')`;
+                    bgTop.style.opacity = '1'; bgBottom.style.opacity = '1';
+                }, 600);
+            }
+
+            // 重置翻页状态
+            if (sectionId === 'education') {
+                document.getElementById(`edu-slide-1`).classList.add('active');
+                document.getElementById(`edu-slide-2`).classList.remove('active');
+                currentEduSlide = 1;
+            }
+            if (sectionId === 'internship') {
+                // 实习后期有多个在此添加
+            }
+            if (sectionId === 'projects') {
+                for(let i=1; i<=3; i++) document.getElementById(`proj-slide-${i}`).classList.remove('active');
+                const targetIndex = subSlideIndex || 1;
+                document.getElementById(`proj-slide-${targetIndex}`).classList.add('active');
+                currentProjSlide = targetIndex;
+            }
+        }
+    </script>
+</body>
+</html>
